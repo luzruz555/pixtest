@@ -30,7 +30,7 @@ export default function Home() {
   const [useBasePrompt, setUseBasePrompt] = useState(true)
   const [useTrigger, setUseTrigger] = useState(true)
   const [model, setModel] = useState('Tsubaki (DIT)')
-  const [width, setWidth] = useState(768)
+  const [width, setWidth] = useState(1024)
   const [height, setHeight] = useState(1024)
   const [lora1Weight, setLora1Weight] = useState(0.2)
   const [lora2Weight, setLora2Weight] = useState(0.2)
@@ -38,7 +38,7 @@ export default function Home() {
   // 새로 추가된 설정
   const [steps, setSteps] = useState(25)
   const [sampler, setSampler] = useState('Euler a')
-  const [cfgScale, setCfgScale] = useState(2.4)
+  const [cfgScale, setCfgScale] = useState(6.7)
   const [rescaleCfg, setRescaleCfg] = useState(0.7)
   
   const [loading, setLoading] = useState(false)
