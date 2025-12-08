@@ -11,7 +11,7 @@ const MODELS = {
 
 const SAMPLERS = ['Euler a', 'Euler', 'DPM++ 2M', 'DPM++ 2M Karras', 'DPM++ SDE', 'DPM++ SDE Karras', 'DDIM']
 
-const DEFAULT_BASE_PROMPT = `(na tarapisu153:0.8), (say hana:0.8), (Azuuru:0.7), (kozimo123456:1.4), (freng:0.45), (patzzi:0.4), year 2024, year 2025, delicate face, kawaii aesthetic, 32k uhd, masterpiece, best quality, ultra-detailed, beautiful, nai3, (no halo:1.9), (no accessories:1.9), (no accessory:1.5), (no ornaments:1.8), blurry background`
+const DEFAULT_BASE_PROMPT = `(na tarapisu153:0.8), (say hana:0.8), (Azuuru:0.7), (kozimo123456:1.4), (freng:0.45), (patzzi:0.4), year 2024, year 2025, delicate face, kawaii aesthetic, 32k uhd, masterpiece, best quality, ultra-detailed, beautiful, nai3, (no halo:1.9), (no accessories:1.9), (no accessory:1.5), (no ornaments:1.8), blurry background, soft skin, bold lineart, black lineart`
 
 const DEFAULT_NEGATIVE_PROMPT = `bad quality, low quality, worst quality, lowres, nsfw, jpeg artifacts, scan artifacts, mosaic, cropped, error, fewer digits, bad reflection, bad composition, bad anatomy, bad hands, bad fingers, missing fingers, extra hands, extra legs, excess fingers, light particles, artist name, text, watermark, username, copyright name, bright, creature, creatures, sensei, teacher, (((halo))), hosino, accessory, 2girls, multiple people, chibi, multiple characters, sketched characters, blue archive characters, hairpin, thick eyebrows, piercing , brooch, text, (red blood:1.3), ornament`
 
@@ -38,7 +38,7 @@ export default function Home() {
   // 새로 추가된 설정
   const [steps, setSteps] = useState(25)
   const [sampler, setSampler] = useState('Euler a')
-  const [cfgScale, setCfgScale] = useState(6.7)
+  const [cfgScale, setCfgScale] = useState(2.4)
   const [rescaleCfg, setRescaleCfg] = useState(0.7)
   
   const [loading, setLoading] = useState(false)
