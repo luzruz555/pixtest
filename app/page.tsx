@@ -331,13 +331,24 @@ export default function Home() {
       a.href = url
       a.download = `pixai_${Date.now()}.png`
       document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(url)
-    } catch (err) {
-      setError('다운로드 실패')
-    }
+      // 함수 내부라고 가정 (예: const handleDownload = () => { ... )
+
+  try {  // <--- 이 'try {' 가 반드시 있어야 합니다!
+    // a 태그 생성 및 다운로드 로직
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'generated-image.png' // 파일명은 상황에 맞게
+    document.body.appendChild(a)
+    
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error(err)
+    setError('다운로드 실패')
   }
+
+// ...
 
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-mesh">
