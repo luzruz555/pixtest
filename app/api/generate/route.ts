@@ -5,7 +5,7 @@ const BASE_URL = 'https://api.pixai.art/v1'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { apiKey, prompt, negativePrompt, model, width, height, loras } = body
+    const { apiKey, prompt, negativePrompt, model, width, height, loras, steps, sampler, cfgScale, rescaleCfg } = body
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API 키가 필요합니다' }, { status: 400 })
@@ -25,7 +25,11 @@ export async function POST(request: NextRequest) {
         batchSize: 1,
         priority: 1000,
         negativePrompts: negativePrompt,
-        loras: loras
+        loras: loras,
+        steps: parseInt(steps),
+        samplingMethod: sampler,
+        cfgScale: parseFloat(cfgScale),
+        rescaleCfg: parseFloat(rescaleCfg)
       }
     }
 
