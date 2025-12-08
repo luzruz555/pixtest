@@ -16,34 +16,39 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json'
     }
 
-    // 🛠️ 수정된 Payload 구조
+    // 1. LoRA 배열을 API가 원하는 { "ID": 가중치 } 객체 형태로 변환
+    const loraObject = loras.reduce((acc: any, current: any) => {
+      if (current.loraId && current.weight > 0) {
+        acc[current.loraId] = current.weight
+      }
+      return acc
+    }, {})
+
+    // 2. Payload 구성
     const payload = {
-      modelId: model, // 모델 ID는 최상위에 위치
-      prompts: prompt, // 프롬프트도 최상위에 위치
+      modelId: model,
+      prompts: prompt,
       parameters: {
-        // PixAI API에 맞는 변수명(snake_case)으로 변환
-        negative_prompt: negativePrompt, 
+        negative_prompt: negativePrompt,
         width: parseInt(width),
         height: parseInt(height),
         cfg_scale: parseFloat(cfgScale),
         step: parseInt(steps),
         sampler: sampler,
         
-        // 🚨 LoRA 핵심 수정: loraId를 modelId로 변경하여 매핑
-        lora: loras.map((l: any) => ({
-          modelId: l.loraId,
-          weight: l.weight
-        }))
+        // 🚨 여기가 수정된 부분입니다 (배열 -> 객체)
+        lora: loraObject
       }
     }
 
-    // 필요하다면 rescaleCfg 추가 (API 지원 여부에 따라)
+    // rescaleCfg 옵션 추가
     if (rescaleCfg) {
       // @ts-ignore
       payload.parameters.rescale_cfg = parseFloat(rescaleCfg)
     }
 
-    console.log('Sending Payload:', JSON.stringify(payload, null, 2)) // 디버깅용 로그
+    // 디버깅을 위해 서버 로그에 출력 (터미널에서 확인 가능)
+    console.log('Sending Payload:', JSON.stringify(payload, null, 2))
 
     const createResponse = await fetch(`${BASE_URL}/task`, {
       method: 'POST',
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '태스크 ID를 찾을 수 없습니다' }, { status: 500 })
     }
 
-    // 폴링 로직 (기존과 동일)
+    // 3. 결과 대기 (폴링)
     for (let i = 0; i < 60; i++) {
       await new Promise(resolve => setTimeout(resolve, 5000))
 
