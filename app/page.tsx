@@ -211,7 +211,7 @@ export default function Home() {
                 </div>
                 <div>
                   <label className="block text-xs text-white/50 mb-1">CFG 스케일: {cfgScale}</label>
-                  <input type="range" min={1} max={20} step={0.1} value={cfgScale}
+                  <input type="range" min={2.5} max={20} step={0.1} value={cfgScale}
                     onChange={(e) => setCfgScale(parseFloat(e.target.value))}
                     className="w-full accent-cyan-500" />
                 </div>
