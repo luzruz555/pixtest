@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'application/json'
     }
 
-    // LoRA 형식 변환 (여러 형식 시도)
-    const formattedLoras = loras?.filter((l: any) => l.id)?.map((l: any) => ({
-      id: l.id,
+    // LoRA 형식 - loraId 사용
+    const formattedLoras = loras?.filter((l: any) => l.loraId)?.map((l: any) => ({
+      loraId: l.loraId,
       weight: l.weight
     })) || []
 
@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
     if (formattedLoras.length > 0) {
       payload.parameters.loras = formattedLoras
     }
+
+    console.log('Request payload:', JSON.stringify(payload, null, 2))
 
     const createResponse = await fetch(`${BASE_URL}/task`, {
       method: 'POST',
