@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Download, Settings, Sparkles, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Plus, X, Zap } from 'lucide-react'
+import { Download, Settings, Sparkles, Image as ImageIcon, Loader2, ChevronDown, ChevronUp, Zap, Key } from 'lucide-react'
 
 const MODELS = {
   'Tsubaki (DIT)': '1894092844569363483',
@@ -11,28 +11,45 @@ const MODELS = {
 
 const SAMPLERS = ['Euler a', 'Euler', 'DPM++ 2M', 'DPM++ 2M Karras', 'DPM++ SDE', 'DPM++ SDE Karras', 'DDIM']
 
-const DEFAULT_BASE_PROMPT = `(na tarapisu153:0.8), (say hana:0.8), (Azuuru:0.7), (kozimo123456:1.4), (freng:0.45), (patzzi:0.4), year 2024, year 2025, delicate face, kawaii aesthetic, 32k uhd, masterpiece, best quality, ultra-detailed, beautiful, nai3, (no halo:1.9), (no accessories:1.9), (no accessory:1.5), (no ornaments:1.8), blurry background`
+// 유저 프리셋
+const USER_PRESETS: { [key: string]: any } = {
+  'LUZ555': {
+    basePrompt: `(na tarapisu153:0.8), (say hana:0.8), (Azuuru:0.7), (kozimo123456:1.4), (freng:0.45), (patzzi:0.4), year 2024, year 2025, delicate face, kawaii aesthetic, 32k uhd, masterpiece, best quality, ultra-detailed, beautiful, nai3, (no halo:1.9), (no accessories:1.9), (no accessory:1.5), (no ornaments:1.8), blurry background, black lineart, bold lineart, soft skin`,
+    negativePrompt: `bad quality, low quality, worst quality, lowres, nsfw, jpeg artifacts, scan artifacts, mosaic, cropped, error, fewer digits, bad reflection, bad composition, bad anatomy, bad hands, bad fingers, missing fingers, extra hands, extra legs, excess fingers, light particles, artist name, text, watermark, username, copyright name, bright, creature, creatures, sensei, teacher, (((halo))), hosino, accessory, 2girls, multiple people, chibi, multiple characters, sketched characters, blue archive characters, hairpin, thick eyebrows, piercing , brooch, text, (red blood:1.3), ornament`,
+    loras: [
+      { url: 'https://pixai.art/model/1950426337578887524', weight: 0.2 },
+      { url: 'https://pixai.art/model/1844622188231356208', weight: 0.2 },
+      { url: '', weight: 0.2 },
+    ],
+    emotions: [
+      { id: 'happy', name: '기쁨', tags: 'smile, happy, (head tilt:0.6)', enabled: false },
+      { id: 'smile', name: '미소', tags: 'light smile', enabled: false },
+      { id: 'front', name: '정면샷', tags: 'facing at viewer, expressionless', enabled: false },
+      { id: 'sad', name: '슬픔', tags: 'sad, looking down, crying, tears on face', enabled: false },
+      { id: 'angry', name: '분노', tags: 'angry, glare, scawl', enabled: false },
+      { id: 'shy', name: '부끄러움', tags: 'shy, blush, looking another, embarrassed', enabled: false },
+      { id: 'dead', name: '사망', tags: 'empty eyes, dead eyes, death scene, black blood on face, black blood on cloth, lying, black blood on floor, lifeless body', enabled: false },
+    ],
+    steps: 25,
+    sampler: 'Euler a',
+    cfgScale: 6.7,
+    rescaleCfg: 0.7,
+  }
+}
 
-const DEFAULT_NEGATIVE_PROMPT = `bad quality, low quality, worst quality, lowres, nsfw, jpeg artifacts, scan artifacts, mosaic, cropped, error, fewer digits, bad reflection, bad composition, bad anatomy, bad hands, bad fingers, missing fingers, extra hands, extra legs, excess fingers, light particles, artist name, text, watermark, username, copyright name, bright, creature, creatures, sensei, teacher, (((halo))), hosino, accessory, 2girls, multiple people, chibi, multiple characters, sketched characters, blue archive characters, hairpin, thick eyebrows, piercing , brooch, text, (red blood:1.3), ornament`
-
-const TRIGGER_WORDS = 'soft skin, bold lineart, black lineart'
-
+// 기본 빈 감정 태그
 const DEFAULT_EMOTIONS = [
-  { id: 'happy', name: '기쁨', tags: 'smile, happy, (head tilt:0.6)', enabled: false },
-  { id: 'smile', name: '미소', tags: 'light smile', enabled: false },
-  { id: 'front', name: '정면샷', tags: 'facing at viewer, expressionless', enabled: false },
-  { id: 'sad', name: '슬픔', tags: 'sad, looking down, crying, tears on face', enabled: false },
-  { id: 'angry', name: '분노', tags: 'angry, glare, scawl', enabled: false },
-  { id: 'shy', name: '부끄러움', tags: 'shy, blush, looking another, embarrassed', enabled: false },
-  { id: 'dead', name: '사망', tags: 'empty eyes, dead eyes, death scene, black blood on face, black blood on cloth, lying, black blood on floor, lifeless body', enabled: false },
+  { id: 'emotion1', name: '감정 1', tags: '', enabled: false },
+  { id: 'emotion2', name: '감정 2', tags: '', enabled: false },
+  { id: 'emotion3', name: '감정 3', tags: '', enabled: false },
+  { id: 'emotion4', name: '감정 4', tags: '', enabled: false },
+  { id: 'emotion5', name: '감정 5', tags: '', enabled: false },
 ]
 
 // LoRA URL에서 ID 추출
 const extractLoraId = (url: string): string | null => {
-  // https://pixai.art/model/1950426337578887524-xxx 형식
   const match = url.match(/model\/(\d+)/)
   if (match) return match[1]
-  // 이미 ID만 입력된 경우
   if (/^\d+$/.test(url.trim())) return url.trim()
   return null
 }
@@ -40,29 +57,25 @@ const extractLoraId = (url: string): string | null => {
 export default function Home() {
   const [apiKey, setApiKey] = useState('')
   const [prompt, setPrompt] = useState('')
-  const [negativePrompt, setNegativePrompt] = useState(DEFAULT_NEGATIVE_PROMPT)
-  const [basePrompt, setBasePrompt] = useState(DEFAULT_BASE_PROMPT)
+  const [negativePrompt, setNegativePrompt] = useState('')
+  const [basePrompt, setBasePrompt] = useState('')
   const [useBasePrompt, setUseBasePrompt] = useState(true)
-  const [useTrigger, setUseTrigger] = useState(true)
   const [model, setModel] = useState('Tsubaki (DIT)')
   const [width, setWidth] = useState(1024)
   const [height, setHeight] = useState(1024)
   
-  // LoRA 설정 (최대 3개)
   const [loras, setLoras] = useState([
-    { url: 'https://pixai.art/model/1950426337578887524', weight: 0.2 },
-    { url: 'https://pixai.art/model/1844622188231356208', weight: 0.2 },
+    { url: '', weight: 0.2 },
+    { url: '', weight: 0.2 },
     { url: '', weight: 0.2 },
   ])
   
-  // 샘플링 설정
   const [steps, setSteps] = useState(25)
   const [sampler, setSampler] = useState('Euler a')
   const [cfgScale, setCfgScale] = useState(6.7)
   const [rescaleCfg, setRescaleCfg] = useState(0.7)
   const [fastMode, setFastMode] = useState(true)
   
-  // 감정 태그
   const [emotions, setEmotions] = useState(DEFAULT_EMOTIONS)
   const [showEmotions, setShowEmotions] = useState(false)
   
@@ -71,6 +84,10 @@ export default function Home() {
   const [error, setError] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [progress, setProgress] = useState('')
+  
+  // 유저코드
+  const [userCode, setUserCode] = useState('')
+  const [codeMessage, setCodeMessage] = useState('')
 
   useEffect(() => {
     const savedApiKey = localStorage.getItem('pixai_api_key')
@@ -81,6 +98,8 @@ export default function Home() {
     if (savedNegativePrompt) setNegativePrompt(savedNegativePrompt)
     const savedEmotions = localStorage.getItem('pixai_emotions')
     if (savedEmotions) setEmotions(JSON.parse(savedEmotions))
+    const savedLoras = localStorage.getItem('pixai_loras')
+    if (savedLoras) setLoras(JSON.parse(savedLoras))
   }, [])
 
   const saveApiKey = (key: string) => {
@@ -102,9 +121,10 @@ export default function Home() {
     const newLoras = [...loras]
     newLoras[index] = { ...newLoras[index], [field]: value }
     setLoras(newLoras)
+    localStorage.setItem('pixai_loras', JSON.stringify(newLoras))
   }
 
-  const updateEmotion = (id: string, field: 'enabled' | 'tags', value: boolean | string) => {
+  const updateEmotion = (id: string, field: 'enabled' | 'tags' | 'name', value: boolean | string) => {
     const newEmotions = emotions.map(e => 
       e.id === id ? { ...e, [field]: value } : e
     )
@@ -112,10 +132,36 @@ export default function Home() {
     localStorage.setItem('pixai_emotions', JSON.stringify(newEmotions))
   }
 
+  // 유저코드 적용
+  const applyUserCode = () => {
+    const preset = USER_PRESETS[userCode.toUpperCase()]
+    if (preset) {
+      setBasePrompt(preset.basePrompt)
+      setNegativePrompt(preset.negativePrompt)
+      setLoras(preset.loras)
+      setEmotions(preset.emotions)
+      setSteps(preset.steps)
+      setSampler(preset.sampler)
+      setCfgScale(preset.cfgScale)
+      setRescaleCfg(preset.rescaleCfg)
+      
+      localStorage.setItem('pixai_base_prompt', preset.basePrompt)
+      localStorage.setItem('pixai_negative_prompt', preset.negativePrompt)
+      localStorage.setItem('pixai_loras', JSON.stringify(preset.loras))
+      localStorage.setItem('pixai_emotions', JSON.stringify(preset.emotions))
+      
+      setCodeMessage('✅ 프리셋이 적용되었습니다!')
+      setTimeout(() => setCodeMessage(''), 3000)
+    } else {
+      setCodeMessage('❌ 존재하지 않는 코드입니다')
+      setTimeout(() => setCodeMessage(''), 3000)
+    }
+  }
+
   const generateSingleImage = async (finalPrompt: string, label: string) => {
     const loraData = loras
-      .map(l => ({ id: extractLoraId(l.url), weight: l.weight }))
-      .filter(l => l.id)
+      .map(l => ({ loraId: extractLoraId(l.url), weight: l.weight }))
+      .filter(l => l.loraId)
 
     const response = await fetch('/api/generate', {
       method: 'POST',
@@ -149,16 +195,15 @@ export default function Home() {
     setGeneratedImages([])
 
     let basePromptFinal = prompt
-    if (useBasePrompt) basePromptFinal = `${basePrompt}, ${basePromptFinal}`
-    if (useTrigger) basePromptFinal = `${basePromptFinal}, ${TRIGGER_WORDS}`
+    if (useBasePrompt && basePrompt) {
+      basePromptFinal = `${basePrompt}, ${basePromptFinal}`
+    }
 
-    // 생성할 이미지 목록
     const imagesToGenerate = [
       { label: '기본', prompt: basePromptFinal }
     ]
 
-    // 활성화된 감정 태그 추가
-    emotions.filter(e => e.enabled).forEach(e => {
+    emotions.filter(e => e.enabled && e.tags).forEach(e => {
       imagesToGenerate.push({
         label: e.name,
         prompt: `${basePromptFinal}, ${e.tags}`
@@ -205,7 +250,7 @@ export default function Home() {
 
   const downloadAll = () => {
     generatedImages.forEach(img => downloadImage(img.url, img.name))
-                                             }
+               }
   return (
     <main className="min-h-screen p-4 md:p-8 bg-gradient-mesh">
       <div className="max-w-7xl mx-auto">
@@ -213,7 +258,7 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
             ✨ Pixai Generator
           </h1>
-          <p className="text-white/60">LUZ 전용 이미지 생성기</p>
+          <p className="text-white/60">AI 이미지 생성기</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -346,12 +391,6 @@ export default function Home() {
                     className="toggle-checkbox" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-white/80">🔧 트리거 워드 적용</span>
-                  <input type="checkbox" checked={useTrigger}
-                    onChange={(e) => setUseTrigger(e.target.checked)}
-                    className="toggle-checkbox" />
-                </div>
-                <div className="flex items-center justify-between">
                   <span className="text-white/80 flex items-center gap-2"><Zap size={16} />빠른 생성</span>
                   <input type="checkbox" checked={fastMode}
                     onChange={(e) => setFastMode(e.target.checked)}
@@ -371,8 +410,13 @@ export default function Home() {
                 <div className="p-5 pt-0 space-y-3 border-t border-white/10">
                   {emotions.map((emotion) => (
                     <div key={emotion.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white/80 text-sm">{emotion.name}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={emotion.name}
+                          onChange={(e) => updateEmotion(emotion.id, 'name', e.target.value)}
+                          className="glass-input px-2 py-1 rounded text-white text-sm w-20"
+                        />
                         <input type="checkbox" checked={emotion.enabled}
                           onChange={(e) => updateEmotion(emotion.id, 'enabled', e.target.checked)}
                           className="toggle-checkbox" />
@@ -381,7 +425,8 @@ export default function Home() {
                         type="text"
                         value={emotion.tags}
                         onChange={(e) => updateEmotion(emotion.id, 'tags', e.target.value)}
-                        className="glass-input w-full px-3 py-2 rounded-lg text-white text-xs"
+                        placeholder="감정 태그 입력..."
+                        className="glass-input w-full px-3 py-2 rounded-lg text-white text-xs placeholder-white/30"
                       />
                     </div>
                   ))}
@@ -401,12 +446,14 @@ export default function Home() {
                   <div>
                     <label className="block text-sm text-white/70 mb-2">기본 프롬프트</label>
                     <textarea value={basePrompt} onChange={(e) => saveBasePrompt(e.target.value)}
-                      rows={4} className="glass-input w-full px-4 py-3 rounded-xl text-white text-sm resize-none" />
+                      rows={4} placeholder="기본으로 적용될 프롬프트..."
+                      className="glass-input w-full px-4 py-3 rounded-xl text-white text-sm resize-none placeholder-white/30" />
                   </div>
                   <div>
                     <label className="block text-sm text-white/70 mb-2">네거티브 프롬프트</label>
                     <textarea value={negativePrompt} onChange={(e) => saveNegativePrompt(e.target.value)}
-                      rows={4} className="glass-input w-full px-4 py-3 rounded-xl text-white text-sm resize-none" />
+                      rows={4} placeholder="제외할 태그..."
+                      className="glass-input w-full px-4 py-3 rounded-xl text-white text-sm resize-none placeholder-white/30" />
                   </div>
                 </div>
               )}
@@ -416,12 +463,33 @@ export default function Home() {
             <button onClick={generateImage} disabled={loading}
               className="glass-button w-full py-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2">
               {loading ? (<><Loader2 className="animate-spin" size={20} />{progress || '생성 중...'}</>)
-                : (<><Sparkles size={20} />이미지 생성 ({1 + emotions.filter(e => e.enabled).length}장)</>)}
+                : (<><Sparkles size={20} />이미지 생성 ({1 + emotions.filter(e => e.enabled && e.tags).length}장)</>)}
             </button>
 
             {error && (
               <div className="glass-card rounded-xl p-4 border-red-500/50 text-red-400 text-sm">❌ {error}</div>
             )}
+
+            {/* 유저코드 */}
+            <div className="glass-card rounded-2xl p-5">
+              <label className="block text-sm text-white/70 mb-2 flex items-center gap-2"><Key size={16} />프리셋 코드</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={userCode}
+                  onChange={(e) => setUserCode(e.target.value)}
+                  placeholder="코드 입력..."
+                  className="glass-input flex-1 px-4 py-3 rounded-xl text-white placeholder-white/30"
+                />
+                <button onClick={applyUserCode}
+                  className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors text-white font-medium">
+                  적용
+                </button>
+              </div>
+              {codeMessage && (
+                <p className="mt-2 text-sm">{codeMessage}</p>
+              )}
+            </div>
           </div>
 
           {/* 이미지 출력 영역 */}
@@ -475,8 +543,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="text-center mt-8 text-white/30 text-sm">Made with 💜 for LUZ</div>
+        <div className="text-center mt-8 text-white/30 text-sm">Pixai Generator</div>
       </div>
     </main>
   )
-            }
+                                                         }
